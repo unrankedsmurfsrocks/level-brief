@@ -36,10 +36,24 @@ export default async (req) => {
       }
 
       const existing = await store.get(user, { type: "json" }).catch(() => null);
+
+      // Merge comments instead of overwriting — combine by timestamp to avoid duplicates
+      const mergedComments = {};
+      const allKeys = new Set([
+        ...Object.keys(existing?.comments ?? {}),
+        ...Object.keys(comments ?? {}),
+      ]);
+      for (const k of allKeys) {
+        const sc = existing?.comments?.[k] || [];
+        const nc = comments?.[k] || [];
+        const seen = new Set(sc.map((c) => c.time));
+        mergedComments[k] = [...sc, ...nc.filter((c) => !seen.has(c.time))];
+      }
+
       const updated = {
         user,
-        answers: answers || (existing?.answers ?? {}),
-        comments: comments || (existing?.comments ?? {}),
+        answers: { ...(existing?.answers ?? {}), ...(answers ?? {}) },
+        comments: mergedComments,
         updatedAt: new Date().toISOString(),
       };
 
