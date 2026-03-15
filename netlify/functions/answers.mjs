@@ -5,7 +5,7 @@ export default async (req) => {
   const headers = {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 
@@ -45,6 +45,15 @@ export default async (req) => {
 
       await store.setJSON(user, updated);
       return new Response(JSON.stringify({ ok: true, data: updated }), { status: 200, headers });
+    }
+
+    // DELETE — wipe all users' data
+    if (req.method === "DELETE") {
+      const { blobs } = await store.list();
+      for (const blob of blobs) {
+        await store.delete(blob.key);
+      }
+      return new Response(JSON.stringify({ ok: true, deleted: blobs.length }), { status: 200, headers });
     }
 
     return new Response(JSON.stringify({ error: "method not allowed" }), { status: 405, headers });
